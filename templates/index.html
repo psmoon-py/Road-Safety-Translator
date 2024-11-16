@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayan - Road Safety Chatbot</title>
+</head>
+<body>
+    <h1>Welcome to Ayan - Road Safety Chatbot</h1>
+
+    <!-- Upload PDF Section -->
+    <section id="pdf-upload">
+        <h2>Upload PDF</h2>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <button type="submit">Upload</button>
+        </form>
+    </section>
+
+    <!-- Translate Section -->
+    <section id="translate">
+        <h2>Translate Text</h2>
+        <textarea id="text-to-translate" placeholder="Enter text here"></textarea><br>
+        <label for="language-select">Translate to:</label>
+        <select id="language-select">
+            <!-- Populate with language options -->
+        </select>
+        <button id="translate-btn">Translate</button>
+        <div id="translation-output"></div>
+    </section>
+
+    <!-- Feedback Section -->
+    <section id="feedback">
+        <h2>Feedback</h2>
+        <form id="feedback-form">
+            <textarea name="original_text" placeholder="Original text" required></textarea><br>
+            <textarea name="translated_text" placeholder="Translated text" required></textarea><br>
+            <textarea name="feedback" placeholder="Your feedback" required></textarea><br>
+            <button type="submit">Submit Feedback</button>
+        </form>
+    </section>
+
+    <script>
+        // Populate language dropdown
+        const languages = {
+            "English": "en",
+            "Hindi": "hi",
+            "Spanish": "es",
+            "French": "fr",
+            "German": "de",
+            "Chinese": "zh-cn",
+            "Japanese": "ja"
+            // Add more as needed
+        };
+
+        const languageSelect = document.getElementById('language-select');
+        for (const [name, code] of Object.entries(languages)) {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = name;
+            languageSelect.appendChild(option);
+        }
+
+        // Translation handler
+        document.getElementById('translate-btn').addEventListener('click', async () => {
+            const text = document.getElementById('text-to-translate').value;
+            const language = document.getElementById('language-select').value;
+
+            const response = await fetch('/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, language })
+            });
+
+            const result = await response.json();
+            const outputDiv = document.getElementById('translation-output');
+            if (response.ok) {
+                outputDiv.textContent = `Translated Text: ${result.translated_text}`;
+            } else {
+                outputDiv.textContent = `Error: ${result.error}`;
+            }
+        });
+
+        // Feedback submission
+        document.getElementById('feedback-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const feedbackData = {};
+            formData.forEach((value, key) => (feedbackData[key] = value));
+
+            const response = await fetch('/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(feedbackData)
+            });
+
+            const result = await response.json();
+            alert(result.message || `Error: ${result.error}`);
+        });
+        document.querySelector('form[action="/upload"]').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const fileInput = event.target.querySelector('input[type="file"]');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+        
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+        
+            const result = await response.json();
+            if (response.ok) {
+                // Populate the translation text box with extracted content
+                document.getElementById('text-to-translate').value = result.content;
+            } else {
+                alert(result.error || 'Failed to upload PDF.');
+            }
+        });        
+    </script>
+</body>
+</html>
