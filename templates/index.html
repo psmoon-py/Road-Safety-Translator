@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ayan - Road Safety Chatbot</title>
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
     <h1>Welcome to Ayan - Road Safety Chatbot</h1>
@@ -44,13 +45,29 @@
         // Populate language dropdown
         const languages = {
             "English": "en",
+            "Assamese": "as",
+            "Bengali": "bn",
+            "Bodo": "br",
+            "Dogri": "do",
+            "Gujarati": "gu",
             "Hindi": "hi",
-            "Spanish": "es",
-            "French": "fr",
-            "German": "de",
-            "Chinese": "zh-cn",
-            "Japanese": "ja"
-            // Add more as needed
+            "Kannada": "kn",
+            "Kashmiri": "ks",
+            "Konkani": "kok",
+            "Maithili": "mai",
+            "Malayalam": "ml",
+            "Manipuri": "mi",
+            "Marathi": "mr",
+            "Nepali": "ne",
+            "Odia": "od",
+            "Punjabi": "pa",
+            "Sanskrit": "sa",
+            "Santali": "st",
+            "Sindhi": "sd",
+            "Tamil": "ta",
+            "Telugu": "te",
+            "Urdu": "ur"
+            // Add more as needed"
         };
 
         const languageSelect = document.getElementById('language-select');
@@ -63,21 +80,36 @@
 
         // Translation handler
         document.getElementById('translate-btn').addEventListener('click', async () => {
-            const text = document.getElementById('text-to-translate').value;
+            const text = document.getElementById('text-to-translate').value.trim();
             const language = document.getElementById('language-select').value;
-
-            const response = await fetch('/translate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, language })
-            });
-
-            const result = await response.json();
-            const outputDiv = document.getElementById('translation-output');
-            if (response.ok) {
-                outputDiv.textContent = `Translated Text: ${result.translated_text}`;
-            } else {
-                outputDiv.textContent = `Error: ${result.error}`;
+        
+            if (!text) {
+                alert('Please enter text to translate');
+                return;
+            }
+        
+            if (!language) {
+                alert('Please select a target language');
+                return;
+            }
+        
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, language })
+                });
+        
+                const result = await response.json();
+                const outputDiv = document.getElementById('translation-output');
+                if (response.ok) {
+                    outputDiv.textContent = `Translated Text: ${result.translated_text}`;
+                } else {
+                    outputDiv.textContent = `Error: ${result.error}`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while translating. Please try again.');
             }
         });
 
