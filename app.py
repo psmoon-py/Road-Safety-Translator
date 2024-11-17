@@ -1,8 +1,10 @@
 import os
+import re
+import logging
+import sqlite3
 from flask import Flask, request, jsonify, render_template
 import PyPDF2
-from googletrans import Translator  # Example translation library
-import sqlite3  # For database to store messages and feedback
+from googletrans import Translator
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -36,11 +38,9 @@ init_db()
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # Add a front-end interface for PDF upload and translation
+    return render_template('index.html')  # Ensure you have an index.html file in the templates folder
 
 # API to upload and process PDF
-import re
-
 @app.route('/upload', methods=['POST'])
 def upload_pdf():
     if 'file' not in request.files:
@@ -52,46 +52,41 @@ def upload_pdf():
             pdf_reader = PyPDF2.PdfReader(file)
             pdf_text = ""
             for page in pdf_reader.pages:
-                pdf_text += page.extract_text()
+                pdf_text += page.extract_text() or ""  # Handle None return from extract_text
             
             # Sanitize the text (remove excessive whitespace and unsupported characters)
-            pdf_text = re.sub(r'\s+', ' ', pdf_text)  # Replace multiple spaces with a single space
-            pdf_text = pdf_text.strip()  # Remove leading and trailing whitespace
+            pdf_text = re.sub(r'\s+', ' ', pdf_text).strip()  # Replace multiple spaces with a single space
             
             return jsonify({"content": pdf_text}), 200
         except Exception as e:
             return jsonify({"error": f"Failed to process PDF: {str(e)}"}), 500
     return jsonify({"error": "Invalid file type. Please upload a PDF."}), 400
 
-
 # API for translation
-import logging
-
 logging.basicConfig(level=logging.INFO)
 
 @app.route('/translate', methods=['POST'])
 def translate_text():
-    data = request.json
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({"error": "Request body is empty or not valid JSON"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Invalid JSON payload: {str(e)}"}), 400
+
     original_text = data.get("text")
     target_language = data.get("language")
 
-    logging.info(f"Translation requested for text: {original_text[:100]}...")  # Log the first 100 chars
-    logging.info(f"Target language: {target_language}")
-    
-    # Rest of the code...
-    
-    if not original_text or not target_language:
-        return jsonify({"error": "Missing text or language parameter"}), 400
-
-    # Ensure original_text is valid and non-empty
-    if not original_text.strip():
-        return jsonify({"error": "No text provided for translation."}), 400
+    if not original_text:
+        return jsonify({"error": "Missing 'text' parameter"}), 400
+    if not target_language:
+        return jsonify({"error": "Missing 'language' parameter"}), 400
 
     try:
         translated_text = translator.translate(original_text, dest=target_language).text
         return jsonify({"translated_text": translated_text}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Translation failed: {str(e)}"}), 500
 
 # API to submit user feedback
 @app.route('/feedback', methods=['POST'])
@@ -115,10 +110,11 @@ def submit_feedback():
     conn.close()
 
     return jsonify({"message": "Feedback submitted successfully"}), 200
+
 @app.route('/get_message', methods=['GET'])
 def get_message():
     region = request.args.get("region")
-    language = request.args.get("language")
+    language = request .get("language")
     
     conn = sqlite3.connect("road_safety.db")
     cursor = conn.cursor()
@@ -140,7 +136,7 @@ def add_message():
     region = data.get("region")
     message = data.get("message")
     language = data.get("language")
-    
+
     if not region or not message or not language:
         return jsonify({"error": "All fields are required"}), 400
 
@@ -153,7 +149,7 @@ def add_message():
     conn.commit()
     conn.close()
 
-    return jsonify({"message": "Road safety message added successfully"}), 200
+    return jsonify({"message": "Safety message added successfully"}), 201
 
 if __name__ == '__main__':
     app.run(debug=True)
